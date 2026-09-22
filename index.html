@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Neon Workspace - Permanent Cloud Mode</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS (xlsx) for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0A0E17',
+                        cardbg: '#111827',
+                        neoncyan: '#00F0FF',
+                        neonmagenta: '#FF007F',
+                        neongreen: '#00FF66',
+                        neonamber: '#FFB800',
+                    },
+                    boxShadow: {
+                        'cyan-glow': '0 0 15px rgba(0, 240, 255, 0.4)',
+                        'magenta-glow': '0 0 15px rgba(255, 0, 127, 0.4)',
+                        'green-glow': '0 0 15px rgba(0, 255, 102, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0A0E17;
+            color: #E5E7EB;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <script>
+        // ==========================================
+        // YOUR SUPABASE CONFIGURATION:
+        // ==========================================
+        const SUPABASE_URL = 'https://pfemespbqzvjjomxylww.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_JN347MLdBgdhapWwYJqyag_kId8POfm';
+        
+        let db = null;
+        if (SUPABASE_ANON_KEY !== 'sb_publishable_JN347MLdBgdhapWwYJqyag_kId8POfm' && window.supabase) {
+            db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+    </script>
+
+    <!-- Navigation Header -->
+    <nav class="bg-gray-900 border-b border-gray-800 p-4 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('landing')">
+                <i data-lucide="zap" class="text-neoncyan w-6 h-6"></i>
+                <span class="text-xl font-bold tracking-wider text-white">NEON<span class="text-neoncyan">TRACK</span></span>
+                <span id="cloud-badge" class="ml-2 px-2 py-0.5 text-[10px] rounded bg-yellow-950 text-yellow-400 border border-yellow-700">Local Mode</span>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="switchView('landing')" class="px-3 py-1.5 rounded-lg text-sm bg-gray-800 hover:bg-gray-700 text-gray-300">Home</button>
+                <button onclick="switchView('tasks')" class="px-3 py-1.5 rounded-lg text-sm bg-gray-800 hover:bg-neoncyan/20 hover:text-neoncyan text-gray-300">Tasks</button>
+                <button onclick="switchView('bills')" class="px-3 py-1.5 rounded-lg text-sm bg-gray-800 hover:bg-neonmagenta/20 hover:text-neonmagenta text-gray-300">Bills & Events</button>
+                <button onclick="switchView('reports')" class="px-3 py-1.5 rounded-lg text-sm bg-gray-800 hover:bg-neongreen/20 hover:text-neongreen text-gray-300">Reports</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+
+        <!-- 1. Landing View -->
+        <div id="view-landing" class="view-section py-12">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4">Welcome to Your <span class="text-neoncyan">Workspace</span></h1>
+                <p class="text-gray-400 max-w-lg mx-auto">Select a module below to start managing your daily operational tasks or tracking project expenses permanently.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div onclick="switchView('tasks')" class="cursor-pointer bg-cardbg p-8 rounded-2xl border border-gray-800 hover:border-neoncyan transition-all hover:shadow-cyan-glow group">
+                    <div class="w-14 h-14 rounded-xl bg-neoncyan/10 border border-neoncyan/30 flex items-center justify-center mb-6 text-neoncyan group-hover:scale-110 transition-transform">
+                        <i data-lucide="check-square" class="w-8 h-8"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">Daily Task Tracker</h2>
+                    <p class="text-gray-400 mb-6">Create, assign priority levels, monitor client tasks, and keep complete logs of closed tasks.</p>
+                    <span class="inline-flex items-center text-neoncyan font-medium group-hover:translate-x-1 transition-transform">Open Tracker <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i></span>
+                </div>
+                <div onclick="switchView('bills')" class="cursor-pointer bg-cardbg p-8 rounded-2xl border border-gray-800 hover:border-neonmagenta transition-all hover:shadow-magenta-glow group">
+                    <div class="w-14 h-14 rounded-xl bg-neonmagenta/10 border border-neonmagenta/30 flex items-center justify-center mb-6 text-neonmagenta group-hover:scale-110 transition-transform">
+                        <i data-lucide="receipt" class="w-8 h-8"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">Daily Bills & Expenses</h2>
+                    <p class="text-gray-400 mb-6">Create event budgets, upload dynamic expense receipts with auto-renaming, and manage expenditure logs.</p>
+                    <span class="inline-flex items-center text-neonmagenta font-medium group-hover:translate-x-1 transition-transform">Open Expenses <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Tasks View -->
+        <div id="view-tasks" class="view-section hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-cardbg p-4 rounded-xl border border-gray-800">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="check-square" class="text-neoncyan w-6 h-6"></i>
+                    <h2 class="text-xl font-bold text-white">Daily Tasks</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openModal('modal-manage-clients')" class="bg-gray-800 text-neoncyan border border-neoncyan/40 hover:bg-neoncyan/10 font-bold px-3 py-2 rounded-lg text-sm flex items-center space-x-2 transition-colors">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Manage Clients</span>
+                    </button>
+                    <button onclick="openModal('modal-create-task')" class="bg-neoncyan text-gray-950 font-bold px-4 py-2 rounded-lg hover:bg-cyan-300 shadow-cyan-glow flex items-center space-x-2 text-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Create Task</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Task Filters -->
+            <div class="flex flex-wrap gap-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">Timeframe:</span>
+                    <select id="task-filter-time" onchange="renderTasks()" class="bg-gray-800 text-sm text-gray-200 border border-gray-700 rounded-md px-2 py-1">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">Status:</span>
+                    <select id="task-filter-status" onchange="renderTasks()" class="bg-gray-800 text-sm text-gray-200 border border-gray-700 rounded-md px-2 py-1">
+                        <option value="open">Open Tasks</option>
+                        <option value="closed">Closed Tasks</option>
+                        <option value="all">All Tasks</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-cardbg rounded-xl border border-gray-800 overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-300">
+                    <thead class="bg-gray-900/80 text-gray-400 uppercase text-xs">
+                        <tr>
+                            <th class="p-4">Task Name</th>
+                            <th class="p-4">Client</th>
+                            <th class="p-4">Priority</th>
+                            <th class="p-4">Reminder</th>
+                            <th class="p-4">Status</th>
+                            <th class="p-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-list-body" class="divide-y divide-gray-800">
+                        <!-- Dynamic Tasks Inserted Here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. Bills & Events View -->
+        <div id="view-bills" class="view-section hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-cardbg p-4 rounded-xl border border-gray-800">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="receipt" class="text-neonmagenta w-6 h-6"></i>
+                    <h2 class="text-xl font-bold text-white">Daily Bills & Event Expenses</h2>
+                </div>
+                <button onclick="openModal('modal-create-event')" class="bg-neonmagenta text-white font-bold px-4 py-2 rounded-lg hover:bg-pink-600 shadow-magenta-glow flex items-center justify-center space-x-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Create Event</span>
+                </button>
+            </div>
+
+            <!-- Bill Filters -->
+            <div class="flex flex-wrap gap-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">Timeframe:</span>
+                    <select id="bill-filter-time" onchange="renderEvents()" class="bg-gray-800 text-sm text-gray-200 border border-gray-700 rounded-md px-2 py-1">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">Status:</span>
+                    <select id="bill-filter-status" onchange="renderEvents()" class="bg-gray-800 text-sm text-gray-200 border border-gray-700 rounded-md px-2 py-1">
+                        <option value="open">Open Events</option>
+                        <option value="closed">Closed Events</option>
+                        <option value="all">All Events</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="event-list-container" class="grid gap-4 md:grid-cols-2">
+                <!-- Dynamic Events Inserted Here -->
+            </div>
+        </div>
+
+        <!-- 4. Reports View -->
+        <div id="view-reports" class="view-section hidden space-y-6">
+            <div class="bg-cardbg p-6 rounded-xl border border-gray-800 space-y-4">
+                <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="file-spreadsheet" class="text-neongreen w-6 h-6"></i>
+                    <h2 class="text-xl font-bold text-white">Excel Data Reports</h2>
+                </div>
+                <p class="text-gray-400 text-sm">Download formatted Excel spreadsheets based on your operational logs.</p>
+                
+                <div class="grid md:grid-cols-2 gap-6 pt-4">
+                    <div class="bg-gray-900/70 p-5 rounded-lg border border-gray-800 space-y-4">
+                        <h3 class="font-bold text-neoncyan flex items-center"><i data-lucide="check-square" class="w-4 h-4 mr-2"></i> Tasks Excel Report</h3>
+                        <p class="text-xs text-gray-400">Includes Task name, client, priority level, description, reported to, reminder date, close status, and notes.</p>
+                        <button onclick="exportTasksToExcel()" class="w-full bg-neoncyan/10 text-neoncyan border border-neoncyan hover:bg-neoncyan hover:text-black font-semibold py-2 rounded-lg transition-all flex items-center justify-center space-x-2">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Export Tasks (.xlsx)</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-gray-900/70 p-5 rounded-lg border border-gray-800 space-y-4">
+                        <h3 class="font-bold text-neonmagenta flex items-center"><i data-lucide="receipt" class="w-4 h-4 mr-2"></i> Expense Bills Excel Report</h3>
+                        <p class="text-xs text-gray-400">Includes Event name, date range, bill names, details, amounts, bill dates, and stored image paths.</p>
+                        <button onclick="exportExpensesToExcel()" class="w-full bg-neonmagenta/10 text-neonmagenta border border-neonmagenta hover:bg-neonmagenta hover:text-white font-semibold py-2 rounded-lg transition-all flex items-center justify-center space-x-2">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Export Bills & Expenses (.xlsx)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALS SECTION -->
+    
+    <!-- MODAL: Central Action Notification -->
+    <div id="modal-action-notify" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-cardbg border-2 border-neoncyan rounded-xl p-6 max-w-sm w-full text-center space-y-4 shadow-cyan-glow">
+            <div id="notify-icon-bg" class="w-14 h-14 rounded-full bg-neoncyan/20 border border-neoncyan flex items-center justify-center mx-auto text-neoncyan">
+                <i id="notify-icon" data-lucide="check-circle" class="w-8 h-8"></i>
+            </div>
+            <h3 id="notify-title" class="text-xl font-bold text-white">Action Completed</h3>
+            <p id="notify-message" class="text-sm text-gray-300">Your request was processed successfully.</p>
+            <button onclick="closeModal('modal-action-notify')" class="w-full bg-neoncyan text-gray-950 font-bold py-2 rounded-lg hover:bg-cyan-300 transition-colors">OK</button>
+        </div>
+    </div>
+
+    <!-- MODAL: Manage Clients (NEW) -->
+    <div id="modal-manage-clients" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-neoncyan/50 rounded-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center"><i data-lucide="users" class="text-neoncyan w-5 h-5 mr-2"></i> Manage Client List</h3>
+                <button onclick="closeModal('modal-manage-clients')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <form onsubmit="handleAddClient(event)" class="flex gap-2">
+                <input type="text" id="new-client-input" required placeholder="New Client / Entity Name" class="flex-1 bg-gray-900 border border-gray-700 rounded p-2 text-sm text-white focus:border-neoncyan outline-none">
+                <button type="submit" class="bg-neoncyan text-gray-950 font-bold px-3 py-2 rounded text-xs hover:bg-cyan-300 flex items-center">
+                    <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add
+                </button>
+            </form>
+
+            <div class="flex-1 overflow-y-auto space-y-2 py-2" id="client-list-container">
+                <!-- Dynamically loaded client list item rows -->
+            </div>
+
+            <div class="flex justify-end pt-3 border-t border-gray-800">
+                <button onclick="closeModal('modal-manage-clients')" class="px-4 py-2 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 text-sm">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Create Task -->
+    <div id="modal-create-task" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-neoncyan/50 rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center"><i data-lucide="plus-circle" class="text-neoncyan w-5 h-5 mr-2"></i> Create Task</h3>
+                <button onclick="closeModal('modal-create-task')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-create-task" onsubmit="handleCreateTask(event)" class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-gray-400 mb-1">Task Name</label>
+                    <input type="text" id="task-name" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neoncyan outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-gray-400">Client Name</label>
+                            <button type="button" onclick="openModal('modal-manage-clients')" class="text-[10px] text-neoncyan hover:underline">+ Manage</button>
+                        </div>
+                        <select id="task-client" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neoncyan outline-none">
+                            <!-- Dynamic Client Options Populated via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Priority Level</label>
+                        <select id="task-priority" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neoncyan outline-none">
+                            <option value="P1">P1 - Urgent</option>
+                            <option value="P2">P2 - High</option>
+                            <option value="P3" selected>P3 - Medium</option>
+                            <option value="P4">P4 - Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Task Description</label>
+                    <textarea id="task-desc" rows="3" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neoncyan outline-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Reported To</label>
+                        <input type="text" id="task-reported" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neoncyan outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Reminder Date</label>
+                        <input type="date" id="task-reminder" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neoncyan outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-3 border-t border-gray-800">
+                    <button type="button" onclick="closeModal('modal-create-task')" class="px-4 py-2 rounded bg-gray-800 text-gray-300 hover:bg-gray-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-neoncyan text-gray-950 font-bold hover:bg-cyan-300">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Review Task -->
+    <div id="modal-review-task" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-neoncyan/50 rounded-xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center"><i data-lucide="eye" class="text-neoncyan w-5 h-5 mr-2"></i> Review Task Details</h3>
+                <button onclick="closeModal('modal-review-task')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3 text-sm text-gray-300">
+                <div>
+                    <span class="text-xs text-gray-500 uppercase font-bold block">Task Title</span>
+                    <p id="review-task-title" class="text-base text-white font-medium"></p>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <span class="text-xs text-gray-500 uppercase font-bold block">Reported To</span>
+                        <p id="review-task-reported" class="text-gray-200"></p>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 uppercase font-bold block">Reminder Date</span>
+                        <p id="review-task-reminder" class="text-gray-200"></p>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-xs text-gray-500 uppercase font-bold block">Description</span>
+                    <p id="review-task-desc" class="bg-gray-900 p-3 rounded border border-gray-800 text-gray-300 mt-1 whitespace-pre-wrap"></p>
+                </div>
+            </div>
+            <div class="flex justify-end pt-3 border-t border-gray-800">
+                <button onclick="closeModal('modal-review-task')" class="px-4 py-2 rounded bg-neoncyan text-gray-950 font-bold hover:bg-cyan-300">Close Review</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Close Task -->
+    <div id="modal-close-task" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-neongreen/50 rounded-xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center"><i data-lucide="check-circle-2" class="text-neongreen w-5 h-5 mr-2"></i> Close Task</h3>
+                <button onclick="closeModal('modal-close-task')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-close-task" onsubmit="handleCloseTask(event)" class="space-y-3 text-sm">
+                <input type="hidden" id="close-task-id">
+                <div>
+                    <label class="block text-gray-400 mb-1">Close Note / Resolution Summary</label>
+                    <textarea id="close-task-note" rows="3" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neongreen outline-none" placeholder="Provide completion notes..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Close Date</label>
+                    <input type="date" id="close-task-date" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neongreen outline-none">
+                </div>
+                <div class="flex justify-end space-x-3 pt-3 border-t border-gray-800">
+                    <button type="button" onclick="closeModal('modal-close-task')" class="px-4 py-2 rounded bg-gray-800 text-gray-300 hover:bg-gray-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-neongreen text-gray-950 font-bold hover:bg-green-400">Confirm & Close Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Create Event -->
+    <div id="modal-create-event" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-neonmagenta/50 rounded-xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center"><i data-lucide="calendar-plus" class="text-neonmagenta w-5 h-5 mr-2"></i> Create Expense Event</h3>
+                <button onclick="closeModal('modal-create-event')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-create-event" onsubmit="handleCreateEvent(event)" class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-gray-400 mb-1">Event Name</label>
+                    <input type="text" id="event-name" placeholder="e.g. Q3 Client Meetup" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neonmagenta outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Date From</label>
+                        <input type="date" id="event-date-from" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neonmagenta outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Date To</label>
+                        <input type="date" id="event-date-to" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neonmagenta outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Event Description</label>
+                    <textarea id="event-desc" rows="3" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-neonmagenta outline-none"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-3 border-t border-gray-800">
+                    <button type="button" onclick="closeModal('modal-create-event')" class="px-4 py-2 rounded bg-gray-800 text-gray-300 hover:bg-gray-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-neonmagenta text-white font-bold hover:bg-pink-600">Save Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Upload Expenses (Multi-row) -->
+    <div id="modal-upload-expense" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-cardbg border border-neonmagenta/50 rounded-xl max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center"><i data-lucide="upload" class="text-neonmagenta w-5 h-5 mr-2"></i> Log Expenses for <span id="expense-modal-event-title" class="text-neonmagenta ml-1"></span></h3>
+                    <p class="text-xs text-gray-400">Uploaded bills automatically rename to: <code class="text-neoncyan">billname-billdate-amount.ext</code> in event folder.</p>
+                </div>
+                <button onclick="closeModal('modal-upload-expense')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form id="form-upload-expenses" onsubmit="handleSaveExpenses(event)" class="space-y-4">
+                <input type="hidden" id="expense-event-id">
+                
+                <div id="expense-rows-container" class="space-y-3">
+                    <!-- Dynamic Rows Inserted Here -->
+                </div>
+
+                <div class="flex justify-between items-center pt-2">
+                    <button type="button" onclick="addExpenseRow()" class="px-3 py-1.5 rounded bg-gray-800 text-neoncyan border border-neoncyan/40 text-xs font-semibold hover:bg-neoncyan/10 flex items-center space-x-1">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Add Another Bill Row</span>
+                    </button>
+                    <div class="space-x-3">
+                        <button type="button" onclick="closeModal('modal-upload-expense')" class="px-4 py-2 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 text-sm">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded bg-neonmagenta text-white font-bold hover:bg-pink-600 text-sm">Save All Expenses</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let appState = { tasks: [], events: [], clients: ["Internal", "Acme Corp", "GlobalTech"], activeView: 'landing' };
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            lucide.createIcons();
+            document.getElementById('close-task-date').valueAsDate = new Date();
+
+            if (db) {
+                const badge = document.getElementById('cloud-badge');
+                badge.className = "ml-2 px-2 py-0.5 text-[10px] rounded bg-green-950 text-neongreen border border-neongreen/40";
+                badge.textContent = "Permanent Cloud Mode";
+            }
+
+            await loadInitialData();
+            renderClientOptions();
+            renderClientManagementList();
+            renderTasks();
+            renderEvents();
+        });
+
+        async function loadInitialData() {
+            if (db) {
+                try {
+                    const { data: cloudTasks } = await db.from('tasks').select('*');
+                    const { data: cloudEvents } = await db.from('events').select('*');
+                    const { data: cloudClients } = await db.from('clients').select('*');
+                    appState.tasks = cloudTasks || [];
+                    appState.events = cloudEvents || [];
+                    if (cloudClients && cloudClients.length > 0) {
+                        appState.clients = cloudClients.map(c => c.name);
+                    }
+                    return;
+                } catch(e) {
+                    console.error("Supabase Error:", e);
+                }
+            }
+            appState.tasks = JSON.parse(localStorage.getItem('neon_tasks')) || [];
+            appState.events = JSON.parse(localStorage.getItem('neon_events')) || [];
+            appState.clients = JSON.parse(localStorage.getItem('neon_clients')) || ["Internal", "Acme Corp", "GlobalTech"];
+        }
+
+        async function saveTaskToCloudOrLocal(task) {
+            if (db) {
+                await db.from('tasks').upsert(task);
+            } else {
+                localStorage.setItem('neon_tasks', JSON.stringify(appState.tasks));
+            }
+        }
+
+        async function saveEventToCloudOrLocal(eventObj) {
+            if (db) {
+                await db.from('events').upsert(eventObj);
+            } else {
+                localStorage.setItem('neon_events', JSON.stringify(appState.events));
+            }
+        }
+
+        async function saveClientsToCloudOrLocal() {
+            if (db) {
+                // Refresh clients table in cloud
+                const clientRows = appState.clients.map((c, idx) => ({ id: idx + 1, name: c }));
+                await db.from('clients').upsert(clientRows);
+            }
+            localStorage.setItem('neon_clients', JSON.stringify(appState.clients));
+        }
+
+        // Dynamic Client Rendering Functions
+        function renderClientOptions() {
+            const clientSelect = document.getElementById('task-client');
+            if (!clientSelect) return;
+            clientSelect.innerHTML = appState.clients.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function renderClientManagementList() {
+            const container = document.getElementById('client-list-container');
+            if (!container) return;
+            if (appState.clients.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No clients added yet.</p>`;
+                return;
+            }
+            container.innerHTML = appState.clients.map((client, index) => `
+                <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2 rounded text-xs">
+                    <span class="text-gray-200 font-medium">${client}</span>
+                    <button onclick="handleDeleteClient(${index})" class="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-950/40">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        async function handleAddClient(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-client-input');
+            const newClient = input.value.trim();
+            if (newClient && !appState.clients.includes(newClient)) {
+                appState.clients.push(newClient);
+                await saveClientsToCloudOrLocal();
+                renderClientOptions();
+                renderClientManagementList();
+                input.value = '';
+                triggerActionNotification("Client Added", `"${newClient}" added to options.`, "user-plus", "cyan");
+            }
+        }
+
+        async function handleDeleteClient(index) {
+            const removed = appState.clients.splice(index, 1);
+            await saveClientsToCloudOrLocal();
+            renderClientOptions();
+            renderClientManagementList();
+            triggerActionNotification("Client Removed", `"${removed[0]}" removed from options.`, "trash-2", "magenta");
+        }
+
+        function triggerActionNotification(title, message, iconName = 'check-circle', color = 'cyan') {
+            const titleEl = document.getElementById('notify-title');
+            const msgEl = document.getElementById('notify-message');
+            const iconEl = document.getElementById('notify-icon');
+            const iconBg = document.getElementById('notify-icon-bg');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            
+            iconEl.setAttribute('data-lucide', iconName);
+            lucide.createIcons();
+
+            if (color === 'magenta') {
+                iconBg.className = "w-14 h-14 rounded-full bg-neonmagenta/20 border border-neonmagenta flex items-center justify-center mx-auto text-neonmagenta";
+            } else if (color === 'green') {
+                iconBg.className = "w-14 h-14 rounded-full bg-neongreen/20 border border-neongreen flex items-center justify-center mx-auto text-neongreen";
+            } else {
+                iconBg.className = "w-14 h-14 rounded-full bg-neoncyan/20 border border-neoncyan flex items-center justify-center mx-auto text-neoncyan";
+            }
+
+            openModal('modal-action-notify');
+        }
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(`view-${viewName}`);
+            if (target) {
+                target.classList.remove('hidden');
+                appState.activeView = viewName;
+            }
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function getPriorityBadge(priority) {
+            switch(priority) {
+                case 'P1': return `<span class="px-2 py-0.5 rounded text-xs bg-red-950 text-red-400 border border-red-700 font-bold">P1 - Urgent</span>`;
+                case 'P2': return `<span class="px-2 py-0.5 rounded text-xs bg-orange-950 text-orange-400 border border-orange-700 font-bold">P2 - High</span>`;
+                case 'P3': return `<span class="px-2 py-0.5 rounded text-xs bg-yellow-950 text-yellow-400 border border-yellow-700 font-bold">P3 - Medium</span>`;
+                default: return `<span class="px-2 py-0.5 rounded text-xs bg-blue-950 text-blue-400 border border-blue-700 font-bold">P4 - Low</span>`;
+            }
+        }
+
+        async function handleCreateTask(e) {
+            e.preventDefault();
+            const newTask = {
+                id: 'task_' + Date.now(),
+                name: document.getElementById('task-name').value,
+                client: document.getElementById('task-client').value,
+                priority: document.getElementById('task-priority').value,
+                description: document.getElementById('task-desc').value,
+                reportedTo: document.getElementById('task-reported').value,
+                reminderDate: document.getElementById('task-reminder').value,
+                status: 'open',
+                createdDate: new Date().toISOString().split('T')[0],
+                closeNote: '',
+                closeDate: ''
+            };
+
+            appState.tasks.push(newTask);
+            await saveTaskToCloudOrLocal(newTask);
+            renderTasks();
+            closeModal('modal-create-task');
+            document.getElementById('form-create-task').reset();
+            
+            triggerActionNotification("Task Created", `"${newTask.name}" has been permanently saved.`, "plus-circle", "cyan");
+        }
+
+        function renderTasks() {
+            const listContainer = document.getElementById('task-list-body');
+            const timeFilter = document.getElementById('task-filter-time').value;
+            const statusFilter = document.getElementById('task-filter-status').value;
+
+            let filtered = appState.tasks.filter(t => {
+                if (statusFilter !== 'all' && t.status !== statusFilter) return false;
+                if (timeFilter !== 'all') {
+                    const created = new Date(t.createdDate);
+                    const now = new Date();
+                    if (timeFilter === 'today') {
+                        if (t.createdDate !== now.toISOString().split('T')[0]) return false;
+                    } else if (timeFilter === 'weekly') {
+                        const diffTime = Math.abs(now - created);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays > 7) return false;
+                    } else if (timeFilter === 'monthly') {
+                        if (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear()) return false;
+                    }
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-gray-500">No tasks found for selected filters.</td></tr>`;
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(t => `
+                <tr class="hover:bg-gray-900/50">
+                    <td class="p-4 font-semibold text-white">${t.name}</td>
+                    <td class="p-4 text-gray-300">${t.client}</td>
+                    <td class="p-4">${getPriorityBadge(t.priority)}</td>
+                    <td class="p-4 text-gray-400">${t.reminderDate}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-0.5 rounded text-xs ${t.status === 'open' ? 'bg-cyan-950 text-neoncyan border border-neoncyan/40' : 'bg-gray-800 text-gray-400'}">
+                            ${t.status.toUpperCase()}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right space-x-2">
+                        <button onclick="reviewTask('${t.id}')" class="px-2.5 py-1 text-xs rounded bg-gray-800 text-neoncyan hover:bg-neoncyan/20 border border-neoncyan/30">Review</button>
+                        ${t.status === 'open' ? `<button onclick="promptCloseTask('${t.id}')" class="px-2.5 py-1 text-xs rounded bg-gray-800 text-neongreen hover:bg-neongreen/20 border border-neongreen/30">Close</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function reviewTask(taskId) {
+            const task = appState.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            document.getElementById('review-task-title').textContent = task.name;
+            document.getElementById('review-task-reported').textContent = task.reportedTo;
+            document.getElementById('review-task-reminder').textContent = task.reminderDate;
+            document.getElementById('review-task-desc').textContent = task.description;
+            openModal('modal-review-task');
+
+            triggerActionNotification("Reviewing Task", `Opened details for "${task.name}".`, "eye", "cyan");
+        }
+
+        function promptCloseTask(taskId) {
+            document.getElementById('close-task-id').value = taskId;
+            openModal('modal-close-task');
+        }
+
+        async function handleCloseTask(e) {
+            e.preventDefault();
+            const taskId = document.getElementById('close-task-id').value;
+            const task = appState.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = 'closed';
+                task.closeNote = document.getElementById('close-task-note').value;
+                task.closeDate = document.getElementById('close-task-date').value;
+                await saveTaskToCloudOrLocal(task);
+                renderTasks();
+                closeModal('modal-close-task');
+                document.getElementById('form-close-task').reset();
+
+                triggerActionNotification("Task Closed", `"${task.name}" has been closed.`, "check-circle", "green");
+            }
+        }
+
+        async function handleCreateEvent(e) {
+            e.preventDefault();
+            const newEvent = {
+                id: 'event_' + Date.now(),
+                name: document.getElementById('event-name').value,
+                dateFrom: document.getElementById('event-date-from').value,
+                dateTo: document.getElementById('event-date-to').value,
+                description: document.getElementById('event-desc').value,
+                status: 'open',
+                bills: []
+            };
+
+            appState.events.push(newEvent);
+            await saveEventToCloudOrLocal(newEvent);
+            renderEvents();
+            closeModal('modal-create-event');
+            document.getElementById('form-create-event').reset();
+
+            triggerActionNotification("Event Created", `"${newEvent.name}" expense event saved.`, "calendar-plus", "magenta");
+        }
+
+        function renderEvents() {
+            const container = document.getElementById('event-list-container');
+            const timeFilter = document.getElementById('bill-filter-time').value;
+            const statusFilter = document.getElementById('bill-filter-status').value;
+
+            let filtered = appState.events.filter(ev => {
+                if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
+                if (timeFilter !== 'all') {
+                    const created = new Date(ev.dateFrom);
+                    const now = new Date();
+                    if (timeFilter === 'today') {
+                        if (ev.dateFrom !== now.toISOString().split('T')[0]) return false;
+                    } else if (timeFilter === 'weekly') {
+                        const diffTime = Math.abs(now - created);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays > 7) return false;
+                    } else if (timeFilter === 'monthly') {
+                        if (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear()) return false;
+                    }
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-2 text-center p-8 bg-cardbg rounded-xl border border-gray-800 text-gray-500">No events found for selected filters.</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(ev => {
+                const totalAmount = (ev.bills || []).reduce((sum, b) => sum + parseFloat(b.amount || 0), 0);
+                return `
+                    <div class="bg-cardbg rounded-xl border border-gray-800 p-5 space-y-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs text-neonmagenta font-mono uppercase">Folder: /Events/${ev.name.replace(/\s+/g, '_')}/</span>
+                                <h3 class="text-lg font-bold text-white mt-0.5">${ev.name}</h3>
+                                <p class="text-xs text-gray-400 mt-1">${ev.dateFrom} to ${ev.dateTo}</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded text-xs ${ev.status === 'open' ? 'bg-pink-950 text-neonmagenta border border-neonmagenta/40' : 'bg-gray-800 text-gray-400'}">
+                                ${ev.status.toUpperCase()}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-300 bg-gray-900/60 p-2.5 rounded border border-gray-800">${ev.description}</p>
+                        
+                        <div class="flex justify-between items-center text-xs text-gray-400 border-t border-b border-gray-800 py-2">
+                            <span>Logged Bills: <strong class="text-white">${(ev.bills || []).length}</strong></span>
+                            <span>Total Spend: <strong class="text-neonmagenta text-sm">$${totalAmount.toFixed(2)}</strong></span>
+                        </div>
+
+                        <div class="flex space-x-2 pt-1">
+                            ${ev.status === 'open' ? `
+                                <button onclick="openUploadExpenseModal('${ev.id}')" class="flex-1 bg-neonmagenta/10 hover:bg-neonmagenta hover:text-white border border-neonmagenta/50 text-neonmagenta text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center space-x-1">
+                                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                                    <span>Upload Expense</span>
+                                </button>
+                                <button onclick="closeEvent('${ev.id}')" class="px-3 py-2 bg-gray-800 hover:bg-red-950 hover:text-red-400 text-gray-300 text-xs rounded border border-gray-700">Close Event</button>
+                            ` : `<span class="text-xs text-gray-500 italic">Event Closed & Locked</span>`}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        async function closeEvent(eventId) {
+            const ev = appState.events.find(e => e.id === eventId);
+            if (ev) {
+                ev.status = 'closed';
+                await saveEventToCloudOrLocal(ev);
+                renderEvents();
+                triggerActionNotification("Event Closed", `"${ev.name}" expense event locked.`, "check-circle-2", "green");
+            }
+        }
+
+        function openUploadExpenseModal(eventId) {
+            const ev = appState.events.find(e => e.id === eventId);
+            if (!ev) return;
+
+            document.getElementById('expense-event-id').value = eventId;
+            document.getElementById('expense-modal-event-title').textContent = ev.name;
+            
+            const container = document.getElementById('expense-rows-container');
+            container.innerHTML = '';
+            addExpenseRow();
+
+            openModal('modal-upload-expense');
+        }
+
+        function addExpenseRow() {
+            const container = document.getElementById('expense-rows-container');
+            const rowHtml = `
+                <div class="expense-row bg-gray-900 p-3 rounded-lg border border-gray-800 grid md:grid-cols-5 gap-2 items-end">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Bill Name</label>
+                        <input type="text" class="bill-name w-full bg-gray-800 text-xs text-white border border-gray-700 rounded p-1.5 focus:border-neonmagenta outline-none" required placeholder="e.g. Flight">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Bill Detail</label>
+                        <input type="text" class="bill-detail w-full bg-gray-800 text-xs text-white border border-gray-700 rounded p-1.5 focus:border-neonmagenta outline-none" required placeholder="e.g. NY to LA">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Amount ($)</label>
+                        <input type="number" step="0.01" class="bill-amount w-full bg-gray-800 text-xs text-white border border-gray-700 rounded p-1.5 focus:border-neonmagenta outline-none" required placeholder="250.00">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Date</label>
+                        <input type="date" class="bill-date w-full bg-gray-800 text-xs text-white border border-gray-700 rounded p-1.5 focus:border-neonmagenta outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Image File</label>
+                        <input type="file" accept="image/*" class="bill-file w-full bg-gray-800 text-xs text-gray-400 border border-gray-700 rounded p-1 focus:border-neonmagenta outline-none">
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', rowHtml);
+        }
+
+        async function handleSaveExpenses(e) {
+            e.preventDefault();
+            const eventId = document.getElementById('expense-event-id').value;
+            const ev = appState.events.find(e => e.id === eventId);
+            if (!ev) return;
+
+            if (!ev.bills) ev.bills = [];
+
+            const rowElements = document.querySelectorAll('#expense-rows-container .expense-row');
+            let addedCount = 0;
+
+            rowElements.forEach(row => {
+                const name = row.querySelector('.bill-name').value;
+                const detail = row.querySelector('.bill-detail').value;
+                const amount = row.querySelector('.bill-amount').value;
+                const date = row.querySelector('.bill-date').value;
+                const fileInput = row.querySelector('.bill-file');
+
+                let fileNameRenamed = "No Image Attached";
+                if (fileInput.files.length > 0) {
+                    const originalFile = fileInput.files[0];
+                    const ext = originalFile.name.split('.').pop();
+                    const cleanName = name.replace(/[^a-zA-Z0-9]/g, "_");
+                    fileNameRenamed = `${cleanName}-${date}-${amount}.${ext}`;
+                }
+
+                ev.bills.push({
+                    id: 'bill_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    name: name,
+                    detail: detail,
+                    amount: parseFloat(amount),
+                    date: date,
+                    renamedFileName: fileNameRenamed,
+                    folderPath: `/Events/${ev.name.replace(/\s+/g, '_')}/${fileNameRenamed}`
+                });
+                addedCount++;
+            });
+
+            await saveEventToCloudOrLocal(ev);
+            renderEvents();
+            closeModal('modal-upload-expense');
+
+            triggerActionNotification("Expenses Logged", `Saved ${addedCount} bill row(s) to "${ev.name}".`, "save", "magenta");
+        }
+
+        function exportTasksToExcel() {
+            if (appState.tasks.length === 0) {
+                alert("No tasks available to export!");
+                return;
+            }
+
+            const exportData = appState.tasks.map(t => ({
+                "Task Name": t.name,
+                "Client Name": t.client,
+                "Priority Level": t.priority,
+                "Task Description": t.description,
+                "Reported To": t.reportedTo,
+                "Reminder Date": t.reminderDate,
+                "Status": t.status.toUpperCase(),
+                "Close Note": t.closeNote || "N/A",
+                "Close Date": t.closeDate || "N/A"
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Tasks Report");
+            XLSX.writeFile(workbook, `Tasks_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            triggerActionNotification("Report Downloaded", "Tasks Excel report saved to downloads.", "download", "green");
+        }
+
+        function exportExpensesToExcel() {
+            if (appState.events.length === 0) {
+                alert("No event expense data available to export!");
+                return;
+            }
+
+            const exportData = [];
+            appState.events.forEach(ev => {
+                const bills = ev.bills || [];
+                if (bills.length === 0) {
+                    exportData.push({
+                        "Event Name": ev.name,
+                        "Event Date From": ev.dateFrom,
+                        "Event Date To": ev.dateTo,
+                        "Event Description": ev.description,
+                        "Event Status": ev.status.toUpperCase(),
+                        "Bill Name": "N/A",
+                        "Bill Detail": "N/A",
+                        "Amount ($)": 0,
+                        "Bill Date": "N/A",
+                        "Stored Image Path": "N/A"
+                    });
+                } else {
+                    bills.forEach(b => {
+                        exportData.push({
+                            "Event Name": ev.name,
+                            "Event Date From": ev.dateFrom,
+                            "Event Date To": ev.dateTo,
+                            "Event Description": ev.description,
+                            "Event Status": ev.status.toUpperCase(),
+                            "Bill Name": b.name,
+                            "Bill Detail": b.detail,
+                            "Amount ($)": b.amount,
+                            "Bill Date": b.date,
+                            "Stored Image Path": b.folderPath
+                        });
+                    });
+                }
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses Report");
+            XLSX.writeFile(workbook, `Expenses_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            triggerActionNotification("Report Downloaded", "Expense & Bills Excel report saved to downloads.", "download", "green");
+        }
+    </script>
+</body>
+</html>
